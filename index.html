@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>China's Diplomatic Language | 中国外交话语</title>
+
+  <!-- Leaflet for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js for time series -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Georgia', serif;
+      background: #faf9f7;
+      color: #1a1a1a;
+      line-height: 1.65;
+    }
+    a { color: #b5000f; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Typography ── */
+    .zh { font-family: 'Noto Serif SC', 'SimSun', serif; color: #555; font-size: 0.88em; display: block; margin-top: 2px; }
+    h1 { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+    h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.4rem; }
+    h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+    p { margin-bottom: 0.8rem; }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 2rem 0 1.5rem;
+      border-bottom: 4px solid #b5000f;
+    }
+    header .subtitle { font-size: 0.95rem; color: #aaa; margin-top: 0.5rem; }
+    header .zh { color: #ccc; }
+    nav { margin-top: 1.2rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+    nav a { color: #ccc; font-size: 0.9rem; font-family: sans-serif; }
+    nav a:hover { color: white; }
+
+    /* ── Section ── */
+    section { padding: 2.5rem 0; border-bottom: 1px solid #e8e4df; }
+    section:last-of-type { border-bottom: none; }
+    .section-label {
+      font-family: sans-serif;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #b5000f;
+      margin-bottom: 0.6rem;
+    }
+
+    /* ── Headlines grid ── */
+    .headlines { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+    .headline-card {
+      background: white;
+      border: 1px solid #e0dbd4;
+      border-left: 4px solid #b5000f;
+      padding: 1rem 1.1rem;
+      border-radius: 0 4px 4px 0;
+    }
+    .headline-card .stat { font-size: 2rem; font-weight: 700; color: #b5000f; line-height: 1; }
+    .headline-card .label { font-size: 0.85rem; color: #444; margin-top: 0.3rem; font-family: sans-serif; }
+    .headline-card .zh { font-size: 0.78rem; }
+
+    /* ── Map ── */
+    #map {
+      height: 480px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      margin-top: 1rem;
+    }
+    .map-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 0.8rem;
+      flex-wrap: wrap;
+      font-family: sans-serif;
+      font-size: 0.88rem;
+    }
+    .map-controls label { font-weight: 600; color: #333; }
+    #year-slider { flex: 1; min-width: 200px; accent-color: #b5000f; }
+    #year-display {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #b5000f;
+      min-width: 3rem;
+      text-align: center;
+    }
+    .map-note { font-size: 0.8rem; color: #777; margin-top: 0.5rem; font-family: sans-serif; }
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-family: sans-serif;
+      color: #555;
+      margin-top: 0.5rem;
+    }
+    .legend-bar {
+      height: 10px;
+      width: 120px;
+      background: linear-gradient(to right, #fff5f0, #b5000f);
+      border: 1px solid #ccc;
+      border-radius: 2px;
+    }
+
+    /* ── Chart ── */
+    .chart-wrap { position: relative; height: 280px; margin-top: 1rem; }
+
+    /* ── Keywords ── */
+    .keywords { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    .kw {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .kw .en { font-weight: 600; }
+    .kw .zh { font-size: 0.78rem; color: #888; margin: 0; }
+
+    /* ── Expandable definitions ── */
+    .expand-list { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 1rem; }
+    .expand-item { border: 1px solid #e0dbd4; border-radius: 4px; background: white; overflow: hidden; }
+    .expand-item summary {
+      cursor: pointer;
+      padding: 0.55rem 0.9rem;
+      font-size: 0.87rem;
+      font-weight: 700;
+      font-family: sans-serif;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+    }
+    .expand-item summary::-webkit-details-marker { display: none; }
+    .expand-item summary::after {
+      content: '+';
+      margin-left: auto;
+      font-size: 1rem;
+      color: #999;
+      font-weight: 400;
+      line-height: 1;
+    }
+    .expand-item[open] summary::after { content: '−'; }
+    .expand-item summary:hover { background: #faf5f0; }
+    .expand-body {
+      padding: 0.6rem 0.9rem 0.8rem;
+      font-size: 0.85rem;
+      color: #333;
+      border-top: 1px solid #f0ebe4;
+      line-height: 1.6;
+    }
+    .expand-body .zh { display: inline; font-size: 0.83em; color: #777; }
+    .expand-note { margin-top: 0.6rem; font-size: 0.78rem; color: #888; font-family: sans-serif; }
+
+    /* ── Keywords (expandable) ── */
+    .kw-list { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 1rem; }
+
+    /* ── About ── */
+    .about-box {
+      background: white;
+      border: 1px solid #e0dbd4;
+      border-radius: 4px;
+      padding: 1.2rem 1.5rem;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    .about-box cite { font-style: italic; color: #555; }
+
+    /* ── Footer ── */
+    footer {
+      background: #1a1a2e;
+      color: #999;
+      padding: 1.5rem 0;
+      font-size: 0.82rem;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    footer a { color: #ccc; }
+
+    /* ── Tooltip ── */
+    .leaflet-tooltip {
+      font-family: sans-serif;
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.4rem; }
+      #map { height: 320px; }
+      .headline-card .stat { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="container">
+    <div class="section-label">Research project · Ongoing</div>
+    <h1>China's Diplomatic Language<br>on the International Order</h1>
+    <span class="zh">中国外交话语与国际秩序</span>
+    <p class="subtitle">How does China talk about the world at press conferences? This site tracks language from the Ministry of Foreign Affairs (2002–2026).</p>
+    <nav>
+      <a href="#map-section">Map 地图</a>
+      <a href="#threats">Pressure 外部压力</a>
+      <a href="#trends">IO mentions 国际秩序</a>
+      <a href="#keywords">Key terms 关键词</a>
+      <a href="#about">About 关于</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ── HEADLINES ── -->
+<section>
+  <div class="container">
+    <div class="section-label">Key findings · 主要发现</div>
+    <div class="headlines">
+      <div class="headline-card">
+        <div class="stat">35,599</div>
+        <div class="label">Press conference exchanges analysed, 2002–2026</div>
+        <span class="zh">分析的新闻发布会问答条目（2002–2026年）</span>
+      </div>
+      <div class="headline-card">
+        <div class="stat" id="stat-us-pct">—</div>
+        <div class="label">Of country-tagged answers mention the United States</div>
+        <span class="zh">涉及美国的回答占比</span>
+      </div>
+      <div class="headline-card">
+        <div class="stat">Sep 2020</div>
+        <div class="label">Peak month for "international order" mentions</div>
+        <span class="zh">"国际秩序"提及量最高峰</span>
+      </div>
+      <div class="headline-card">
+        <div class="stat" id="stat-countries">—</div>
+        <div class="label">Countries and territories mentioned across the corpus</div>
+        <span class="zh">语料库涵盖的国家和地区数量</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MAP ── -->
+<section id="map-section">
+  <div class="container">
+    <div class="section-label">Geographic focus · 地理重点</div>
+    <h2>Where does China's diplomatic attention fall?
+      <span class="zh">中国外交关注的地理分布</span>
+    </h2>
+    <p style="font-size:0.9rem;color:#555;">Each country is coloured by how often it appeared in MFA spokesperson answers in the selected year. Click a country for details.</p>
+
+    <div id="map"></div>
+
+    <div class="map-controls">
+      <label for="year-slider">Year 年份:</label>
+      <input type="range" id="year-slider" min="2002" max="2023" value="2023" step="1">
+      <span id="year-display">2023</span>
+    </div>
+    <div class="legend">
+      <span>Fewer mentions</span>
+      <div class="legend-bar"></div>
+      <span>More mentions</span>
+    </div>
+    <p class="map-note">
+      Note: counts reflect how often a country was mentioned in MFA spokesperson <em>answers</em>, not questions. China is excluded from the map (it appears in almost every answer as the speaker's own country). Territories such as Taiwan, Hong Kong, and Xinjiang are shown separately.
+    </p>
+  </div>
+</section>
+
+<!-- ── THREATS ── -->
+<section id="threats">
+  <div class="container">
+    <div class="section-label">China under pressure · 中国承受的外部压力</div>
+    <h2>Confrontation over time: threats, demands, and representations
+      <span class="zh">对抗态势：威胁、要求与交涉</span>
+    </h2>
+    <p style="font-size:0.9rem;color:#555;margin-bottom:1.2rem;">This section draws on a subset of the MFA corpus where coders identified confrontational exchanges — questions in which a foreign government or actor is framing something as a threat to China, making a demand, or where China has made formal diplomatic representations. The chart below shows how the volume of these exchanges has changed over time.</p>
+
+    <div class="chart-wrap" style="height:320px;">
+      <canvas id="threats-chart"></canvas>
+    </div>
+
+    <p style="font-size:0.82rem;color:#888;font-family:sans-serif;margin-top:0.6rem;">Click a category to see its definition. 点击各类别查看定义。</p>
+    <div class="expand-list" style="margin-top:0.5rem;">
+      <details class="expand-item">
+        <summary><span style="color:#c0291a;">Threat 威胁</span></summary>
+        <div class="expand-body">A foreign government, official, or media outlet frames something as a direct threat to China — its sovereignty, interests, or people. Coded when the spokesperson's answer treats the exchange as confrontational. <span class="zh">威胁：外国政府或媒体将某事定性为对中国主权、利益或人民的直接威胁。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary><span style="color:#f4a261;">Demand 要求</span></summary>
+        <div class="expand-body">A foreign actor explicitly demands that China take or stop a specific action — e.g. release a detainee, stop military activity, change a policy. Stronger than an urge; implies a condition or consequence. <span class="zh">要求：外国行为体明确要求中国采取或停止某项具体行动，通常暗含条件或后果。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary><span style="color:#c8a200;">Urge 敦促</span></summary>
+        <div class="expand-body">A foreign actor urges, calls on, or presses China to act — a softer form of pressure than a demand. Common in multilateral or diplomatic settings. <span class="zh">敦促：外国行为体敦促、呼吁或施压中国采取行动，力度弱于"要求"。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary><span style="color:#888;">Request 请求</span></summary>
+        <div class="expand-body">A foreign actor requests China do something — phrased as an ask rather than a demand, often in bilateral or cooperative contexts. The mildest category. <span class="zh">请求：外国行为体请求中国做某事，措辞温和，常见于双边或合作背景中。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary><span style="color:#457b9d;">Representations (China) 交涉</span></summary>
+        <div class="expand-body">China makes formal diplomatic representations — the spokesperson says China has lodged a formal objection or protest with a foreign government through official channels. A standard tool of diplomatic pushback, distinct from the above: it is China's own action, not a foreign pressure. <span class="zh">交涉：中国正式提出外交交涉，即通过官方渠道向外国政府提出抗议或异议。与上述类别不同，这是中国的主动行动，而非外国压力。</span></div>
+      </details>
+    </div>
+    <p class="expand-note" style="margin-top:0.6rem;">Note: a single exchange can be coded for multiple categories. Counts reflect press conference exchanges, not real-world incidents. The corpus covers 2003–2026; 2026 is partial.</p>
+
+    <h3 style="margin-top:2rem;font-size:1.1rem;">Geographic distribution of pressure
+      <span class="zh" style="display:block;font-size:0.85rem;color:#555;font-weight:400;margin-top:3px;">外部压力的地理分布</span>
+    </h3>
+    <p style="font-size:0.9rem;color:#555;margin-top:0.5rem;">Which countries appear most often in press conference questions that involve threats, demands, urges, or formal representations? Countries are coloured by total count across the full corpus (2003–2026). Click a country for a breakdown.</p>
+    <div id="threats-map" style="height:420px;border-radius:4px;border:1px solid #ddd;margin-top:0.8rem;"></div>
+    <p class="map-note" style="margin-top:0.5rem;">Countries are coded from the question text (<em>q_loc</em> field) — they reflect which countries journalists associated with threatening or confrontational framing, not necessarily which country initiated the action. The United States and Taiwan account for the largest share by a wide margin.</p>
+  </div>
+</section>
+
+<!-- ── TRENDS ── -->
+<section id="trends">
+  <div class="container">
+    <div class="section-label">Trend · 趋势</div>
+    <h2>Monthly mentions of "international order"
+      <span class="zh">每月提及"国际秩序"的频次</span>
+    </h2>
+    <p style="font-size:0.9rem;color:#555;">How often did MFA spokespeople mention the international order in press conference answers? Peaks often align with major diplomatic events. Bar colour indicates answer sentiment (VADER score): blue = more positive framing, red = more negative.</p>
+    <div class="chart-wrap">
+      <canvas id="trend-chart"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ── KEYWORDS ── -->
+<section id="keywords">
+  <div class="container">
+    <div class="section-label">Key terms tracked · 追踪的关键词</div>
+    <h2>The language of international order
+      <span class="zh">国际秩序的话语体系</span>
+    </h2>
+    <p style="font-size:0.9rem;color:#555;">These terms appear frequently when MFA spokespeople discuss the international system. Click any term to expand its definition.</p>
+    <p style="font-size:0.82rem;color:#888;font-family:sans-serif;margin-top:0.3rem;">点击任意词条查看释义。</p>
+    <div class="expand-list" style="margin-top:0.8rem;">
+      <details class="expand-item">
+        <summary>International order &nbsp;<span style="font-weight:400;color:#888;">国际秩序</span></summary>
+        <div class="expand-body">The overall rules, norms, and institutions governing relations between states. China frequently invokes this term to frame its position as defender of an existing order against what it characterises as Western unilateralism. One of the most frequent terms in the corpus, with a sharp surge after 2015. <span class="zh">国际秩序：规范国家间关系的整体规则、准则与制度体系。中国频繁援引这一术语，以捍卫者自居，抵制其所称的西方单边主义。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Multilateralism &nbsp;<span style="font-weight:400;color:#888;">多边主义</span></summary>
+        <div class="expand-body">The principle that international issues should be addressed through cooperation among multiple states rather than unilateral action. China uses this to push back on US-led coalitions and sanctions, positioning itself as a champion of inclusive diplomacy. <span class="zh">多边主义：主张通过多国合作而非单边行动处理国际问题的原则。中国以此抵制美国主导的联盟与制裁，自居包容外交的倡导者。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Rules-based order &nbsp;<span style="font-weight:400;color:#888;">基于规则的秩序</span></summary>
+        <div class="expand-body">A term widely used by Western governments to describe the liberal international order. China disputes this framing, arguing it privileges rules written by Western states over codified international law and the UN Charter — which China treats as the authoritative framework. <span class="zh">基于规则的秩序：西方国家常用术语。中国对此提出异议，认为该表述将西方制定的规则凌驾于国际法与联合国宪章之上。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Global governance &nbsp;<span style="font-weight:400;color:#888;">全球治理</span></summary>
+        <div class="expand-body">The system of institutions, norms, and processes managing global challenges. China frames itself as a constructive contributor seeking reform of existing institutions to make them more representative of the Global South — not replacement of the system. <span class="zh">全球治理：管理全球问题的制度、规范与程序体系。中国自居建设性参与者，寻求改革现有机构以增强全球南方代表性，而非颠覆体系。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>International law &nbsp;<span style="font-weight:400;color:#888;">国际法</span></summary>
+        <div class="expand-body">Foundational legal norms including the UN Charter and treaties. Chinese spokespersons invoke international law as a constraint on Western intervention, while critics argue China selectively interprets these norms — particularly on territorial disputes and human rights. <span class="zh">国际法：包括联合国宪章及各类条约在内的基础性法律规范。中国援引国际法以抵制西方干预，批评者则指出中国在领土争端与人权问题上存在选择性解读。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>UN Charter &nbsp;<span style="font-weight:400;color:#888;">联合国宪章</span></summary>
+        <div class="expand-body">The founding document of the United Nations, particularly its principles of sovereign equality and non-interference in internal affairs. Frequently cited by Chinese spokespersons as the authoritative and non-negotiable framework for international relations. <span class="zh">联合国宪章：联合国的创立文件，尤其是主权平等与不干涉内政原则。中国发言人频繁援引其作为国际关系的权威且不可动摇的基本框架。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Win-win cooperation &nbsp;<span style="font-weight:400;color:#888;">合作共赢</span></summary>
+        <div class="expand-body">A signature formula emphasising mutual benefit and non-zero-sum outcomes. Used to contrast China's stated approach with what it characterises as competitive, bloc-based thinking. More common in earlier Xi-era language; declined somewhat after 2019. <span class="zh">合作共赢：强调互利共赢、非零和结果的标志性话语，以此对比中国所批评的集团竞争思维。在习近平执政初期较为常见，2019年后有所减少。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Community of shared future &nbsp;<span style="font-weight:400;color:#888;">人类命运共同体</span></summary>
+        <div class="expand-body">Xi Jinping's signature concept proposing a vision of global order grounded in shared destiny, multilateral cooperation, and equitable development. Introduced around 2013 and heavily promoted through state media. Now enshrined in the UN General Assembly. <span class="zh">人类命运共同体：习近平提出的标志性概念，主张以共同命运、多边合作与公平发展为基础构建全球秩序。2013年前后提出，经由官方媒体大力推介，现已被联合国大会决议采纳。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Reform of the international system &nbsp;<span style="font-weight:400;color:#888;">国际体系改革</span></summary>
+        <div class="expand-body">Calls to make global institutions — the UN Security Council, IMF, WTO — more representative of non-Western states. China uses reform language to distance itself from revisionism: it claims to work within the system, not against it. Usage spiked in 2025. <span class="zh">国际体系改革：呼吁使联合国安理会、国际货币基金组织、世贸组织等全球机构更充分地代表非西方国家利益。中国以此与修正主义划清界限。2025年使用频率显著上升。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Post-war international order &nbsp;<span style="font-weight:400;color:#888;">战后国际秩序</span></summary>
+        <div class="expand-body">References to the order established after 1945, including the UN system. China uses this increasingly to accuse the United States of undermining the very order it helped build, particularly in the context of Trump's second term and US unilateralism. A rising term, hitting a new high in 2025. <span class="zh">战后国际秩序：指二战后建立的以联合国体系为核心的国际秩序。中国日益频繁地援引这一概念，指责美国破坏其亲手构建的秩序，尤其在特朗普第二任期与美国单边主义背景下。2025年使用量创历史新高。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Hegemony / hegemonism &nbsp;<span style="font-weight:400;color:#888;">霸权主义</span></summary>
+        <div class="expand-body">China's term for great-power domination, particularly US unilateralism, military overreach, and coercive diplomacy. One of the oldest critical terms in the corpus, with roots in Mao-era foreign policy language. Spikes sharply during periods of US-China tension. <span class="zh">霸权主义：中国用语，指大国主导行为，尤指美国单边主义、军事扩张与强制外交。语料库中历史最悠久的批判性词汇之一，源于毛泽东时代的外交话语，在中美关系紧张时期使用频率急剧上升。</span></div>
+      </details>
+      <details class="expand-item">
+        <summary>Cold War mentality &nbsp;<span style="font-weight:400;color:#888;">冷战思维</span></summary>
+        <div class="expand-body">A framing used to criticise alliances, bloc politics, or zero-sum competition as outdated thinking inappropriate to today's interconnected world. Applied by Chinese spokespersons to AUKUS, Quad, and similar multilateral security arrangements, and to US attempts to build coalitions against China. <span class="zh">冷战思维：批评结盟政治或零和竞争的话语框架，认为此类思维过时且不适用于当今相互依存的世界。中国发言人将其用于批评AUKUS、四方安全对话等多边安全安排，以及美国构建对华联盟的企图。</span></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ── ABOUT ── -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">About this site · 关于本站</div>
+    <h2>Data and methods
+      <span class="zh">数据与方法</span>
+    </h2>
+    <div class="about-box">
+      <p>This site draws on the <strong>Chinese Ministry of Foreign Affairs Press Conference Corpus</strong> — a structured dataset of MFA spokesperson Q&amp;A sessions from October 2002 to the present, covering over 35,000 individual exchanges.</p>
+      <p>Geographic locations in spokesperson answers were extracted using named entity recognition and manually validated. Country mentions reflect the text of answers only; China itself is excluded from geographic counts as it appears in almost every response.</p>
+      <p>The international order trend data tracks monthly frequency of the term 国际秩序 (<em>guójì zhìxù</em>) in spokesperson answers, with VADER sentiment scoring.</p>
+      <p><strong>Primary data source:</strong><br>
+      <cite>Mochtak, M., &amp; Turcsanyi, R. Q. (2021). Studying Chinese foreign policy narratives: Introducing the Ministry of Foreign Affairs press conferences corpus. <em>Journal of Chinese Political Science</em>, 26(4), 743–761.</cite></p>
+      <p><strong>Status:</strong> Preliminary research. Data and classifications are subject to revision.</p>
+      <p style="margin-bottom:0;"><strong>Related:</strong> <a href="https://chinaio.github.io">State media analysis →</a></p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Preliminary research · Data updated April 2026 · <a href="https://chinaio.github.io">State media site</a></p>
+  </div>
+</footer>
+
+<!-- ── SCRIPTS ── -->
+<script>
+// ── Load data and initialise ──────────────────────────────────────────────
+
+Promise.all([
+  fetch('data/country_counts.json').then(r => r.json()),
+  fetch('data/monthly_io.json').then(r => r.json()),
+  fetch('data/threats_by_year.json').then(r => r.json()),
+  fetch('data/threats_by_country.json').then(r => r.json())
+]).then(([countryData, monthlyData, threatsData, threatsByCountry]) => {
+  initHeadlines(countryData, monthlyData);
+  initMap(countryData);
+  initChart(monthlyData);
+  initThreatsChart(threatsData);
+  initThreatsMap(threatsByCountry);
+}).catch(err => {
+  console.error('Data load error:', err);
+  document.getElementById('map').innerHTML =
+    '<p style="padding:2rem;color:#666;">Map data could not be loaded. If running locally, use a local server (see README).</p>';
+});
+
+// ── Headlines ────────────────────────────────────────────────────────────
+
+function initHeadlines(countryData, monthlyData) {
+  // US percentage
+  const countries = countryData.countries;
+  let usMentions = 0, totalMentions = 0;
+  for (const [name, yearCounts] of Object.entries(countries)) {
+    const total = Object.values(yearCounts).reduce((a, b) => a + b, 0);
+    if (name !== 'China') {
+      totalMentions += total;
+      if (name === 'United States') usMentions = total;
+    }
+  }
+  const pct = Math.round((usMentions / totalMentions) * 100);
+  document.getElementById('stat-us-pct').textContent = pct + '%';
+
+  // Country count (exclude China, skip regions without ISO)
+  const countryCount = Object.keys(countries).filter(n => n !== 'China').length;
+  document.getElementById('stat-countries').textContent = countryCount;
+}
+
+// ── Map ──────────────────────────────────────────────────────────────────
+
+const ISO_MAP = {
+  'United States':'USA','Japan':'JPN','Taiwan':'TWN','North Korea':'PRK',
+  'Russia':'RUS','Hong Kong':'HKG','India':'IND','Pakistan':'PAK',
+  'Xinjiang':'CHN','Philippines':'PHL','United Kingdom':'GBR','Afghanistan':'AFG',
+  'Iran':'IRN','Ukraine':'UKR','Australia':'AUS','South Korea':'KOR',
+  'Germany':'DEU','France':'FRA','Indonesia':'IDN','Palestine':'PSE',
+  'Syria':'SYR','Iraq':'IRQ','Canada':'CAN','Israel':'ISR','Myanmar':'MMR',
+  'Sri Lanka':'LKA','Vietnam':'VNM','Libya':'LBY','Sudan':'SDN',
+  'Egypt':'EGY','Saudi Arabia':'SAU','Turkey':'TUR','Brazil':'BRA',
+  'South Africa':'ZAF','Cuba':'CUB','Venezuela':'VEN','Nepal':'NPL',
+  'Cambodia':'KHM','Singapore':'SGP','Thailand':'THA','Malaysia':'MYS',
+  'Kazakhstan':'KAZ','Malaysia':'MYS','Italy':'ITA','Spain':'ESP',
+  'Nigeria':'NGA','Kenya':'KEN','Ethiopia':'ETH','Zimbabwe':'ZWE',
+  'Angola':'AGO','DR Congo':'COD','Serbia':'SRB','Panama':'PAN',
+  'Bangladesh':'BGD','Mongolia':'MNG','Laos':'LAO','Uzbekistan':'UZB',
+  'Hungary':'HUN','Solomon Islands':'SLB','Fiji':'FJI','Tonga':'TON',
+  'Vanuatu':'VUT','Papua New Guinea':'PNG','Maldives':'MDV','Bhutan':'BTN',
+  'UAE':'ARE','Qatar':'QAT','Kuwait':'KWT','Jordan':'JOR','Lebanon':'LBN',
+  'Yemen':'YEM','Morocco':'MAR','Tunisia':'TUN','Algeria':'DZA',
+  'Belarus':'BLR','Azerbaijan':'AZE','Armenia':'ARM','Lithuania':'LTU',
+  'Poland':'POL','Czech Republic':'CZE','Sweden':'SWE','Finland':'FIN',
+  'Norway':'NOR','Denmark':'DNK','Netherlands':'NLD','Belgium':'BEL',
+  'Portugal':'PRT','Greece':'GRC','Austria':'AUT','Switzerland':'CHE',
+  'Ireland':'IRL','Croatia':'HRV','Seychelles':'SYC','Albania':'ALB',
+  'Niger':'NER','Kosovo':'XKX','Macao':'MAC','Tibet':'CHN'
+};
+
+// Reverse: iso3 → country name
+const ISO_TO_NAME = {};
+for (const [name, iso] of Object.entries(ISO_MAP)) {
+  if (!ISO_TO_NAME[iso]) ISO_TO_NAME[iso] = name;
+}
+
+let map, geoLayer, countryData;
+
+function initMap(data) {
+  countryData = data;
+
+  map = L.map('map', {
+    center: [20, 15],
+    zoom: 2,
+    minZoom: 1,
+    maxZoom: 6,
+    worldCopyJump: true
+  });
+
+  // Minimal tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Load world GeoJSON (bundled locally)
+  fetch('data/world.geojson')
+    .then(r => r.json())
+    .then(geo => {
+      geoLayer = L.geoJSON(geo, {
+        style: feature => getStyle(feature, currentYear()),
+        onEachFeature: onEachFeature
+      }).addTo(map);
+      updateMap(currentYear());
+    })
+    .catch(() => {
+      document.querySelector('.map-note').textContent +=
+        ' (World borders could not be loaded — check your internet connection.)';
+    });
+
+  // Slider
+  const slider = document.getElementById('year-slider');
+  const display = document.getElementById('year-display');
+  slider.addEventListener('input', () => {
+    display.textContent = slider.value;
+    updateMap(parseInt(slider.value));
+  });
+}
+
+function currentYear() {
+  return parseInt(document.getElementById('year-slider').value);
+}
+
+function getCountForYear(iso3, year) {
+  const name = ISO_TO_NAME[iso3];
+  if (!name || !countryData.countries[name]) return 0;
+  const d = countryData.countries[name];
+  // Keys may be stored as "2024.0" (float) or "2024" (int)
+  return d[String(year)] || d[year + '.0'] || 0;
+}
+
+function getColor(count) {
+  if (count === 0) return '#f0eeea';
+  if (count < 5)   return '#fdd5cc';
+  if (count < 15)  return '#f99981';
+  if (count < 40)  return '#e05c45';
+  if (count < 100) return '#c0291a';
+  return '#8b0000';
+}
+
+function getStyle(feature, year) {
+  const iso = feature.properties['ISO3166-1-Alpha-3'];
+  const count = iso === 'CHN' ? 0 : getCountForYear(iso, year); // exclude China
+  return {
+    fillColor: getColor(count),
+    weight: 0.5,
+    opacity: 1,
+    color: '#aaa',
+    fillOpacity: 0.85
+  };
+}
+
+function updateMap(year) {
+  if (!geoLayer) return;
+  geoLayer.eachLayer(layer => {
+    layer.setStyle(getStyle(layer.feature, year));
+  });
+}
+
+function onEachFeature(feature, layer) {
+  layer.on({
+    mouseover: e => {
+      const iso = feature.properties['ISO3166-1-Alpha-3'];
+      const name = feature.properties.name || 'Unknown';
+      const count = iso === 'CHN' ? '(excluded — speaker country)' : getCountForYear(iso, currentYear());
+      layer.bindTooltip(
+        `<strong>${name}</strong><br>Mentions in ${currentYear()}: ${count}`
+      ).openTooltip(e.latlng);
+      layer.setStyle({ weight: 2, color: '#333' });
+    },
+    mouseout: e => {
+      layer.setStyle(getStyle(feature, currentYear()));
+      layer.closeTooltip();
+    }
+  });
+}
+
+// ── Chart ────────────────────────────────────────────────────────────────
+
+function initChart(monthly) {
+  const ctx = document.getElementById('trend-chart').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: monthly.map(d => d.month),
+      datasets: [{
+        label: 'Mentions of "international order" (国际秩序)',
+        data: monthly.map(d => d.n_io),
+        backgroundColor: monthly.map(d => {
+          // Colour by sentiment: positive = blue-ish, negative = red-ish
+          const s = d.sentiment;
+          if (s === null) return '#ccc';
+          if (s > 0.8)  return '#2166ac';
+          if (s > 0.6)  return '#74add1';
+          if (s > 0.4)  return '#e0a060';
+          return '#d73027';
+        }),
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => ctx[0].label,
+            label: ctx => {
+              const d = monthly[ctx.dataIndex];
+              const sent = d.sentiment !== null ? d.sentiment.toFixed(2) : 'n/a';
+              return [`Mentions: ${d.n_io}`, `Of ${d.n_total} total answers (${d.io_rate.toFixed(1)}%)`, `Sentiment: ${sent}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxTicksLimit: 12,
+            font: { size: 10 },
+            callback: (val, idx) => {
+              const lbl = monthly[idx].month;
+              return lbl.endsWith('-01') ? lbl.slice(0, 4) : '';
+            }
+          },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { font: { size: 11 } },
+          title: { display: true, text: 'Monthly mentions', font: { size: 11 } }
+        }
+      }
+    }
+  });
+
+  // (sentiment note is in the section intro text)
+}
+
+// ── Threats Map ──────────────────────────────────────────────────────────
+
+function initThreatsMap(byCountry) {
+  const tmap = L.map('threats-map', {
+    center: [20, 15], zoom: 2, minZoom: 1, maxZoom: 6, worldCopyJump: true
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(tmap);
+
+  function getThreatColor(total) {
+    if (!total || total === 0) return '#f0eeea';
+    if (total < 10)  return '#d4e6f1';
+    if (total < 30)  return '#7fb3d3';
+    if (total < 80)  return '#2471a3';
+    if (total < 200) return '#1a5276';
+    return '#0e2f44';
+  }
+
+  fetch('data/world.geojson')
+    .then(r => r.json())
+    .then(geo => {
+      L.geoJSON(geo, {
+        style: feature => {
+          const iso = feature.properties['ISO3166-1-Alpha-3'];
+          const d = byCountry[iso];
+          return {
+            fillColor: getThreatColor(d ? d.total : 0),
+            weight: 0.5, opacity: 1, color: '#aaa', fillOpacity: 0.85
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          layer.on({
+            mouseover: e => {
+              const iso = feature.properties['ISO3166-1-Alpha-3'];
+              const name = feature.properties.name || 'Unknown';
+              const d = byCountry[iso];
+              let tip = `<strong>${name}</strong>`;
+              if (d) {
+                tip += `<br>Total: ${d.total}`;
+                if (d.Threat) tip += `<br>Threat: ${d.Threat}`;
+                if (d.Demand) tip += `<br>Demand: ${d.Demand}`;
+                if (d.Urge) tip += `<br>Urge: ${d.Urge}`;
+                if (d.Representations) tip += `<br>Representations: ${d.Representations}`;
+              } else {
+                tip += '<br>No confrontational exchanges coded';
+              }
+              layer.bindTooltip(tip).openTooltip(e.latlng);
+              layer.setStyle({ weight: 2, color: '#333' });
+            },
+            mouseout: () => {
+              const iso = feature.properties['ISO3166-1-Alpha-3'];
+              const d = byCountry[iso];
+              layer.setStyle({
+                fillColor: getThreatColor(d ? d.total : 0),
+                weight: 0.5, opacity: 1, color: '#aaa', fillOpacity: 0.85
+              });
+              layer.closeTooltip();
+            }
+          });
+        }
+      }).addTo(tmap);
+    });
+}
+
+// ── Threats Chart ────────────────────────────────────────────────────────
+
+function initThreatsChart(threats) {
+  const ctx = document.getElementById('threats-chart').getContext('2d');
+  const labels = threats.map(d => d.year);
+
+  const series = [
+    { key: 'Threat',          label: 'Threat',           color: '#c0291a' },
+    { key: 'Demand',          label: 'Demand',           color: '#f4a261' },
+    { key: 'Urge',            label: 'Urge',             color: '#e9c46a' },
+    { key: 'Request',         label: 'Request',          color: '#a8c5da' },
+    { key: 'Representations', label: 'Representations (China)',  color: '#457b9d' },
+  ];
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: series.map(s => ({
+        label: s.label,
+        data: threats.map(d => d[s.key] || 0),
+        backgroundColor: s.color,
+        stack: 'threats',
+        borderWidth: 0,
+      }))
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { font: { size: 11 }, boxWidth: 14, padding: 10 }
+        },
+        tooltip: {
+          mode: 'index',
+          callbacks: {
+            title: ctx => 'Year: ' + ctx[0].label,
+            label: ctx => `${ctx.dataset.label}: ${ctx.raw}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { font: { size: 11 } }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { font: { size: 11 } },
+          title: { display: true, text: 'Annual count', font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
